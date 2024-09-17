@@ -14,6 +14,7 @@ This is a collection of one-shot scripts that I use to make my life easier. Too 
 ## Scripts
 
 - [`shift.py`](./shift.py): A python script to shift the time of a subtitle file by a given amount of seconds.
+- [`restore_permissions.sh`](./restore_permissions.sh): A bash script to restore default directory (`755`) and file (`644`) permissions in a given directory.
 
 ## Contributing
 
