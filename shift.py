@@ -15,7 +15,7 @@ def adjust_srt_timing(input_file, time_shift_seconds):
     Returns:
     - list of str: Adjusted SRT lines.
     """
-    with open(input_file, "r", encoding="latin-1") as file:
+    with open(input_file, "r", encoding="utf-8") as file:
         lines = file.readlines()
 
     adjusted_lines = []
@@ -68,7 +68,7 @@ def save_adjusted_srt(output_file, adjusted_lines):
     - output_file (str): Path to the output SRT file.
     - adjusted_lines (list of str): Adjusted SRT lines.
     """
-    with open(output_file, "w", encoding="cp1252") as file:
+    with open(output_file, "w", encoding="utf-8") as file:
         file.writelines(adjusted_lines)
 
 
