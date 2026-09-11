@@ -103,14 +103,16 @@ def _concat_escape(value):
 
 
 def process_batch(directory, batch):
-    """Merge a batch of videos and move the originals into a sources subfolder."""
+    """Merge a batch of videos and move the originals into a sources subfolder.
+
+    Returns True on success, False on failure.
+    """
     if len(batch) < 2:
         log.info("Skipping isolated video: %s", batch[0].name)
-        return
+        return True
 
-    base_dir = Path(directory)
     final_name = batch[-1].name.removesuffix(".mp4")
-    target_folder = base_dir / final_name
+    target_folder = Path(directory) / final_name
     sources_folder = target_folder / "sources"
     final_video_path = target_folder / f"{final_name}.mp4"
 
@@ -128,8 +130,7 @@ def process_batch(directory, batch):
     try:
         with list_file:
             for video in batch:
-                absolute = str((base_dir / video.name).resolve())
-                list_file.write(f"file '{_concat_escape(absolute)}'\n")
+                list_file.write(f"file '{_concat_escape(str(video.resolve()))}'\n")
 
         ffmpeg_cmd = [
             "ffmpeg", "-y",
@@ -152,6 +153,7 @@ def process_batch(directory, batch):
             shutil.move(str(video), str(destination))
 
         log.info("Success! Merged into %s", final_video_path)
+        return True
     except Exception as exc:
         log.error("Error merging batch %s: %s", final_name, exc)
         if not merged:
@@ -159,6 +161,7 @@ def process_batch(directory, batch):
                 final_video_path.unlink()
             if sources_folder.exists() and not any(sources_folder.iterdir()):
                 shutil.rmtree(target_folder, ignore_errors=True)
+        return False
     finally:
         list_file_path.unlink(missing_ok=True)
 
@@ -180,13 +183,21 @@ def main(argv=None):
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
+    missing = [tool for tool in ("ffmpeg", "ffprobe") if shutil.which(tool) is None]
+    if missing:
+        parser.error("required tool(s) not found on PATH: " + ", ".join(missing))
+
     folder = Path(args.folder)
     if not folder.is_dir():
         parser.error(f"folder does not exist: {folder}")
 
+    failures = 0
     for batch in group_videos(folder, args.max_gap):
-        process_batch(folder, batch)
+        if not process_batch(folder, batch):
+            failures += 1
+
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
