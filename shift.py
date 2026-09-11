@@ -1,7 +1,25 @@
 """This module provides functions to adjust the timing of SRT subtitles."""
 
-import os
 import argparse
+from pathlib import Path
+
+
+def parse_timestamp(timestamp):
+    """Parse an SRT timestamp ('HH:MM:SS,mmm') into seconds as a float."""
+    time_part, ms_part = timestamp.split(",")
+    hours, minutes, seconds = (int(part) for part in time_part.split(":"))
+    return hours * 3600 + minutes * 60 + seconds + int(ms_part) / 1000
+
+
+def format_timestamp(seconds):
+    """Format a number of seconds as an SRT timestamp, clamped at zero."""
+    seconds = max(0, seconds)
+    return "{:02d}:{:02d}:{:02d},{:03d}".format(
+        int(seconds // 3600),
+        int((seconds % 3600) // 60),
+        int(seconds % 60),
+        int((seconds % 1) * 1000),
+    )
 
 
 def adjust_srt_timing(input_file, time_shift_seconds):
@@ -21,40 +39,10 @@ def adjust_srt_timing(input_file, time_shift_seconds):
     adjusted_lines = []
     for line in lines:
         if " --> " in line:
-            # Parse the SRT time format, e.g., "00:01:23,456 --> 00:01:25,678",
-            # extracting and adjusting the timing.
             start, end = line.strip().split(" --> ")
-
-            start_time, start_ms = start.split(",")
-            start_seconds = (int(start_time.split(":")[0]) * 3600 +
-                             int(start_time.split(":")[1]) * 60 +
-                             int(start_time.split(":")[2])) + int(start_ms) / 1000
-
-            end_time, end_ms = end.split(",")
-            end_seconds = (int(end_time.split(":")[0]) * 3600 +
-                           int(end_time.split(":")[1]) * 60 +
-                           int(end_time.split(":")[2])) + int(end_ms) / 1000
-
-            start_seconds += time_shift_seconds
-            end_seconds += time_shift_seconds
-
-            # Format the adjusted times back into the SRT format.
-            start_time = "{:02d}:{:02d}:{:02d},{:03d}".format(
-                int(start_seconds // 3600),
-                int((start_seconds % 3600) // 60),
-                int(start_seconds % 60),
-                int((start_seconds % 1) * 1000)
-            )
-
-            end_time = "{:02d}:{:02d}:{:02d},{:03d}".format(
-                int(end_seconds // 3600),
-                int((end_seconds % 3600) // 60),
-                int(end_seconds % 60),
-                int((end_seconds % 1) * 1000)
-            )
-
-            line = f"{start_time} --> {end_time}\n"
-
+            start_seconds = parse_timestamp(start) + time_shift_seconds
+            end_seconds = parse_timestamp(end) + time_shift_seconds
+            line = f"{format_timestamp(start_seconds)} --> {format_timestamp(end_seconds)}\n"
         adjusted_lines.append(line)
 
     return adjusted_lines
@@ -72,21 +60,19 @@ def save_adjusted_srt(output_file, adjusted_lines):
         file.writelines(adjusted_lines)
 
 
-def get_output_file_path(input_file, output_dir, suffix):
+def output_filename(input_name, suffix):
     """
-    Generate output file path using input file, output directory, and suffix.
-
-    Parameters:
-    - input_file (str): Path to the input SRT file.
-    - output_dir (str): Directory to save the adjusted SRT file.
-    - suffix (str): Suffix to be added to the output file name.
-
-    Returns:
-    - str: Output file path.
+    Generate an output file name from the input file name and a suffix.
     """
-    base_name, extension = os.path.splitext(os.path.basename(input_file))
-    output_file = f"{base_name}_{suffix}{extension}"
-    return os.path.join(output_dir, output_file)
+    path = Path(input_name)
+    return f"{path.stem}_{suffix}{path.suffix}"
+
+
+def adjust_file(input_file, output_file, time_shift_seconds):
+    """Adjust one SRT file's timing and save it to ``output_file``."""
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    save_adjusted_srt(output_file, adjust_srt_timing(input_file, time_shift_seconds))
+    print(f"Adjusted subtitle saved to: {output_file}")
 
 
 def main():
@@ -100,38 +86,25 @@ def main():
     parser.add_argument("input", help="Input SRT file or directory")
     parser.add_argument("-s", "--shift", type=float, default=0, help="Time shift in seconds")
     parser.add_argument("-b", "--batch", action="store_true", help="Process all SRT files in the directory")
-
+    parser.add_argument("-o", "--output-dir", default="./adjusted", help="Directory to save adjusted SRT files (default: %(default)s)")
     args = parser.parse_args()
 
-    input_path = args.input
-    time_shift_seconds = args.shift
-    batch_mode = args.batch
+    input_path = Path(args.input)
+    suffix = "{:g}".format(args.shift)
 
-    if os.path.isdir(input_path):
-        if batch_mode:
-            for root, dirs, files in os.walk(input_path):
-                for file in files:
-                    if file.lower().endswith(".srt"):
-                        input_file_path = os.path.join(root, file)
-                        adjusted_lines = adjust_srt_timing(input_file_path, time_shift_seconds)
-
-                        output_directory = "./adjusted"
-                        os.makedirs(output_directory, exist_ok=True)
-
-                        output_file_path = get_output_file_path(input_file_path, output_directory, str(time_shift_seconds))
-                        save_adjusted_srt(output_file_path, adjusted_lines)
-                        print(f"Adjusted subtitle saved to: {output_file_path}")
-        else:
+    if input_path.is_dir():
+        if not args.batch:
             print("Batch mode not enabled. Use '-b' option to process all SRT files in the directory.")
-    elif os.path.isfile(input_path) and input_path.lower().endswith(".srt"):
-        adjusted_lines = adjust_srt_timing(input_path, time_shift_seconds)
-
-        output_directory = "./adjusted"
-        os.makedirs(output_directory, exist_ok=True)
-
-        output_file_path = get_output_file_path(input_path, output_directory, str(time_shift_seconds))
-        save_adjusted_srt(output_file_path, adjusted_lines)
-        print(f"Adjusted subtitle saved to: {output_file_path}")
+            return
+        for src in sorted(input_path.rglob("*.srt")):
+            if not src.is_file():
+                continue
+            rel_dir = src.relative_to(input_path).parent
+            output_path = Path(args.output_dir) / rel_dir / output_filename(src.name, suffix)
+            adjust_file(src, output_path, args.shift)
+    elif input_path.is_file() and input_path.suffix.lower() == ".srt":
+        output_path = Path(args.output_dir) / output_filename(input_path.name, suffix)
+        adjust_file(input_path, output_path, args.shift)
     else:
         print("Invalid input. Please provide a valid SRT file or directory.")
 
