@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """This module provides functions to adjust the timing of SRT subtitles."""
 
 import argparse

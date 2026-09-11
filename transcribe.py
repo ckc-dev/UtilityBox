@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """This module transcribes a translated SRT file into the timings and indexes of a source SRT file."""
 
 import argparse
