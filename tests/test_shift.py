@@ -1,3 +1,6 @@
+import contextlib
+import io
+import os
 import tempfile
 import unittest
 
@@ -65,6 +68,48 @@ class AdjustSrtTimingTestCase(unittest.TestCase):
         self.assertEqual(lines[0], "1\n")
         self.assertEqual(lines[3], "\n")
         self.assertEqual(lines[4], "2\n")
+
+
+class CliTestCase(unittest.TestCase):
+    def test_cli_shifts_and_saves_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            src = os.path.join(tmp, "ep.srt")
+            out = os.path.join(tmp, "out")
+            with open(src, "w", encoding="utf-8") as f:
+                f.write("1\n00:00:01,000 --> 00:00:03,000\nHello\n")
+
+            shift.main([src, "-s", "2", "-o", out])
+
+            produced = os.path.join(out, "ep_2.srt")
+            self.assertTrue(os.path.exists(produced))
+            with open(produced, encoding="utf-8") as f:
+                self.assertIn("00:00:03,000 --> 00:00:05,000", f.read())
+
+    def test_cli_batch_mode_preserves_subdirs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            src = os.path.join(tmp, "in")
+            sub = os.path.join(src, "sub")
+            os.makedirs(sub)
+            with open(os.path.join(src, "same.srt"), "w", encoding="utf-8") as f:
+                f.write("1\n00:00:01,000 --> 00:00:02,000\nA\n")
+            with open(os.path.join(sub, "same.srt"), "w", encoding="utf-8") as f:
+                f.write("1\n00:00:03,000 --> 00:00:04,000\nB\n")
+            out = os.path.join(tmp, "out")
+
+            shift.main([src, "-b", "-s", "1", "-o", out])
+
+            self.assertTrue(os.path.exists(os.path.join(out, "same_1.srt")))
+            self.assertTrue(os.path.exists(os.path.join(out, "sub", "same_1.srt")))
+
+    def test_cli_rejects_invalid_input(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bogus = os.path.join(tmp, "notes.txt")
+            with open(bogus, "w", encoding="utf-8") as f:
+                f.write("not a subtitle")
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                shift.main([bogus])
+            self.assertIn("Invalid input", buf.getvalue())
 
 
 if __name__ == "__main__":

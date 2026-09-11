@@ -81,7 +81,7 @@ def adjust_file(input_file: Path, output_file: Path, time_shift_seconds: float) 
     print(f"Adjusted subtitle saved to: {output_file}")
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """
     Adjust SRT subtitle timing.
 
@@ -93,7 +93,7 @@ def main() -> None:
     parser.add_argument("-s", "--shift", type=float, default=0, help="Time shift in seconds")
     parser.add_argument("-b", "--batch", action="store_true", help="Process all SRT files in the directory")
     parser.add_argument("-o", "--output-dir", default="./adjusted", help="Directory to save adjusted SRT files (default: %(default)s)")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     input_path = Path(args.input)
     suffix = "{:g}".format(args.shift)

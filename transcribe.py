@@ -65,13 +65,13 @@ def transcribe_srt(source_path: str, translation_path: str) -> str:
     return "\n\n".join(output_blocks) + "\n"
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Transcribe SRT files.")
     parser.add_argument("source", type=str, help="Path to the source SRT file.")
     parser.add_argument("translation", type=str, help="Path to the translated SRT file.")
     parser.add_argument("output_dir", type=str, help="Directory to save the output SRT file.")
     parser.add_argument("--suffix", type=str, default="_transcribed", help="Suffix for the output file name.")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     output_dir = args.output_dir
     if not os.path.exists(output_dir):

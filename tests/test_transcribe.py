@@ -71,5 +71,25 @@ class TranscribeTestCase(unittest.TestCase):
         self.assertEqual(_run(source, translation), _block(1, "00:00:01,000 --> 00:00:02,000", "L'élève a dit « ça »") + "\n")
 
 
+class CliTestCase(unittest.TestCase):
+    def test_cli_writes_transcribed_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            src = os.path.join(tmp, "source.srt")
+            trans = os.path.join(tmp, "translation.srt")
+            out = os.path.join(tmp, "out")
+            with open(src, "w", encoding="utf-8") as f:
+                f.write("1\n00:00:01,000 --> 00:00:02,000\nHello\n")
+            with open(trans, "w", encoding="utf-8") as f:
+                f.write("1\n00:00:01,000 --> 00:00:02,000\nBonjour\n")
+
+            transcribe.main([src, trans, out, "--suffix", "_tr"])
+
+            produced = os.path.join(out, "source_tr.srt")
+            with open(produced, encoding="utf-8") as f:
+                content = f.read()
+            self.assertIn("Bonjour", content)
+            self.assertIn("00:00:01,000 --> 00:00:02,000", content)
+
+
 if __name__ == "__main__":
     unittest.main()
