@@ -16,6 +16,12 @@ class TimestampTestCase(unittest.TestCase):
     def test_format_timestamp_clamps_at_zero(self):
         self.assertEqual(shift.format_timestamp(-5), "00:00:00,000")
 
+    def test_format_timestamp_rounds_milliseconds(self):
+        self.assertEqual(shift.format_timestamp(0.9995), "00:00:01,000")
+
+    def test_format_timestamp_rounds_fractional_shift(self):
+        self.assertEqual(shift.format_timestamp(62.9 - 0.1), "00:01:02,800")
+
     def test_format_timestamp_round_trip(self):
         self.assertEqual(
             shift.parse_timestamp(shift.format_timestamp(3661.125)),

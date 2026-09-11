@@ -13,14 +13,17 @@ def parse_timestamp(timestamp):
 
 
 def format_timestamp(seconds):
-    """Format a number of seconds as an SRT timestamp, clamped at zero."""
+    """Format a number of seconds as an SRT timestamp, clamped at zero.
+
+    The value is rounded to the nearest millisecond before decomposition, so
+    fractional shifts cannot produce artifacts like ``,1000``.
+    """
     seconds = max(0, seconds)
-    return "{:02d}:{:02d}:{:02d},{:03d}".format(
-        int(seconds // 3600),
-        int((seconds % 3600) // 60),
-        int(seconds % 60),
-        int((seconds % 1) * 1000),
-    )
+    total_ms = round(seconds * 1000)
+    hours, rem = divmod(total_ms, 3_600_000)
+    minutes, rem = divmod(rem, 60_000)
+    sec, ms = divmod(rem, 1_000)
+    return f"{hours:02d}:{minutes:02d}:{sec:02d},{ms:03d}"
 
 
 def adjust_srt_timing(input_file, time_shift_seconds):
