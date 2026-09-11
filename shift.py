@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 """This module provides functions to adjust the timing of SRT subtitles."""
 
+from __future__ import annotations
+
 import argparse
 from pathlib import Path
 
 
-def parse_timestamp(timestamp):
+def parse_timestamp(timestamp: str) -> float:
     """Parse an SRT timestamp ('HH:MM:SS,mmm') into seconds as a float."""
     time_part, ms_part = timestamp.split(",")
     hours, minutes, seconds = (int(part) for part in time_part.split(":"))
     return hours * 3600 + minutes * 60 + seconds + int(ms_part) / 1000
 
 
-def format_timestamp(seconds):
+def format_timestamp(seconds: float) -> str:
     """Format a number of seconds as an SRT timestamp, clamped at zero.
 
     The value is rounded to the nearest millisecond before decomposition, so
@@ -26,7 +28,7 @@ def format_timestamp(seconds):
     return f"{hours:02d}:{minutes:02d}:{sec:02d},{ms:03d}"
 
 
-def adjust_srt_timing(input_file, time_shift_seconds):
+def adjust_srt_timing(input_file: str, time_shift_seconds: float) -> list[str]:
     """
     Adjust the timing of subtitles in an SRT file.
 
@@ -52,7 +54,7 @@ def adjust_srt_timing(input_file, time_shift_seconds):
     return adjusted_lines
 
 
-def save_adjusted_srt(output_file, adjusted_lines):
+def save_adjusted_srt(output_file: str, adjusted_lines: list[str]) -> None:
     """
     Save adjusted SRT lines to an output file.
 
@@ -64,7 +66,7 @@ def save_adjusted_srt(output_file, adjusted_lines):
         file.writelines(adjusted_lines)
 
 
-def output_filename(input_name, suffix):
+def output_filename(input_name: str, suffix: str) -> str:
     """
     Generate an output file name from the input file name and a suffix.
     """
@@ -72,14 +74,14 @@ def output_filename(input_name, suffix):
     return f"{path.stem}_{suffix}{path.suffix}"
 
 
-def adjust_file(input_file, output_file, time_shift_seconds):
+def adjust_file(input_file: Path, output_file: Path, time_shift_seconds: float) -> None:
     """Adjust one SRT file's timing and save it to ``output_file``."""
     output_file.parent.mkdir(parents=True, exist_ok=True)
     save_adjusted_srt(output_file, adjust_srt_timing(input_file, time_shift_seconds))
     print(f"Adjusted subtitle saved to: {output_file}")
 
 
-def main():
+def main() -> None:
     """
     Adjust SRT subtitle timing.
 

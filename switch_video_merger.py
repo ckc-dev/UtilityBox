@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Merge consecutive Nintendo Switch screen-capture recordings into single files."""
 
+from __future__ import annotations
+
 import argparse
 import logging
 import shutil
@@ -15,7 +17,7 @@ MAX_GAP_SECONDS = 32
 log = logging.getLogger("merger")
 
 
-def parse_filename_time(filename):
+def parse_filename_time(filename: str) -> datetime | None:
     """Extract a datetime from the Switch video filename.
 
     Example: 2026042920170100_s.mp4 -> 2026-04-29 20:17:01
@@ -27,7 +29,7 @@ def parse_filename_time(filename):
         return None
 
 
-def probe_duration(path):
+def probe_duration(path: Path) -> float | None:
     """Return a video's duration in seconds, or None if it can't be determined."""
     cmd = [
         "ffprobe", "-v", "error",
@@ -43,7 +45,7 @@ def probe_duration(path):
         return None
 
 
-def group_videos(directory, max_gap=MAX_GAP_SECONDS):
+def group_videos(directory: Path, max_gap: float = MAX_GAP_SECONDS) -> list[list[Path]]:
     """Group videos into sequential batches based on start/end timestamps.
 
     Consecutive recordings belong to the same batch when the gap between the end
@@ -97,12 +99,12 @@ def group_videos(directory, max_gap=MAX_GAP_SECONDS):
     return batches
 
 
-def _concat_escape(value):
+def _concat_escape(value: str) -> str:
     """Escape a path for use inside an ffmpeg concat list file."""
     return value.replace("'", "'\\''")
 
 
-def process_batch(directory, batch):
+def process_batch(directory: Path, batch: list[Path]) -> bool:
     """Merge a batch of videos and move the originals into a sources subfolder.
 
     Returns True on success, False on failure.
@@ -166,7 +168,7 @@ def process_batch(directory, batch):
         list_file_path.unlink(missing_ok=True)
 
 
-def main(argv=None):
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Merge consecutive Nintendo Switch screen captures."
     )

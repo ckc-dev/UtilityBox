@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """This module transcribes a translated SRT file into the timings and indexes of a source SRT file."""
 
+from __future__ import annotations
+
 import argparse
 import os
 
 
-def read_srt_file(file_path):
+def read_srt_file(file_path: str) -> list[str]:
     """Read the contents of an SRT file and return it as a list of lines."""
     with open(file_path, "r", encoding="utf-8") as file:
         return file.readlines()
 
 
-def parse_srt_blocks(lines):
+def parse_srt_blocks(lines: list[str]) -> list[tuple[str | None, str, str]]:
     """Parse SRT lines into a list of (index, timing, text) tuples.
 
     Blocks are separated by blank lines. ``text`` may span multiple lines
@@ -42,7 +44,7 @@ def parse_srt_blocks(lines):
     return blocks
 
 
-def transcribe_srt(source_path, translation_path):
+def transcribe_srt(source_path: str, translation_path: str) -> str:
     """Return source SRT content with text replaced by the matching translation.
 
     Text is matched by subtitle index number, so the source and translated
@@ -63,7 +65,7 @@ def transcribe_srt(source_path, translation_path):
     return "\n\n".join(output_blocks) + "\n"
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Transcribe SRT files.")
     parser.add_argument("source", type=str, help="Path to the source SRT file.")
     parser.add_argument("translation", type=str, help="Path to the translated SRT file.")
